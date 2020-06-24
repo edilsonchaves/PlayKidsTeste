@@ -1,6 +1,9 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
+
 public class GridGameControll : MonoBehaviour
 {
     public ItemScript[] itensCena;
@@ -10,83 +13,31 @@ public class GridGameControll : MonoBehaviour
     public GameObject gridGameObject;
     public int constQuantObjetosCena;
     public int constObjetosLinha;
-    bool atualizandoGrid;
+    public string statusGrid;
     public Canvas canvas;
     public AudioSource audioGameControll;
+    public int pontuacaoGrid;
+    int comboObjetosDestruidos;
     // Start is called before the first frame update
     void Start()
     {
         SpawnGridJogo();
-        atualizandoGrid = false;
         SistemaSpawnInicial();
         CorreçaoSpawn();
+        statusGrid = "Jogando";
     }
 
     // Update is called once per frame
-    /*
     void Update()
     {
-        if (Input.GetMouseButtonDown(0) && !atualizandoGrid)
-        {
-
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit, 40))
-            {
-                if (hit.transform.gameObject.layer == 8)
-                {
-                    if (objetoSelecionado == null)
-                    {
-                        //Debug.Log("Encontrei um objeto");
-                        objetoSelecionado = hit.transform.gameObject;
-                    }
-                    else
-                    {
-                        //Debug.Log("Encontrei um segundo Objeto");
-                        int difLinha = objetoSelecionado.GetComponent<ItemDisplay>().posLinha - hit.transform.gameObject.GetComponent<ItemDisplay>().posLinha;
-                        int difColuna = objetoSelecionado.GetComponent<ItemDisplay>().posColuna - hit.transform.gameObject.GetComponent<ItemDisplay>().posColuna;
-                        if (Mathf.Abs(difLinha) + Mathf.Abs(difColuna) <= 1)
-                        {
-                            //Debug.Log("Realizo Troca Inicial");
-                            realizarTrocaObjetos(objetoSelecionado, hit.transform.gameObject);
-
-                            bool verificaAutenticidadeDaTroca = verificaMatchsGrid(objetoSelecionado, hit.transform.gameObject);
-                            if (verificaAutenticidadeDaTroca)
-                            {
-                                //Debug.Log("Troca Realizada com sucesso");
-                                atualizandoGrid = true;
-                                StartCoroutine(Match(objetoSelecionado, hit.transform.gameObject));
-                            }
-                            else
-                            {
-                                //Debug.Log("Troca abortada");
-                                realizarTrocaObjetos(hit.transform.gameObject, objetoSelecionado);
-                            }
-                            objetoSelecionado = null;
-                        }
-                        else
-                        {
-                            //Debug.Log("Nao Realizo Troca");
-                            objetoSelecionado = null;
-                        }
-
-                    }
-
-                }
-
-
-            }
-            else
-            {
-                objetoSelecionado = null;
-            }
-        }
-    }*/
+    }
     void SpawnGridJogo()
     {
         gridsInstanciadosEmCena = new GameObject[constQuantObjetosCena];
         int coluna = 0; 
         int linha = 0;
+        pontuacaoGrid = 0;
+        comboObjetosDestruidos = 1;
         for (int i =0; i< constQuantObjetosCena; i++)
         {
             GameObject gridInstanciado = Instantiate(gridGameObject, Vector3.zero, Quaternion.identity);
@@ -169,9 +120,120 @@ public class GridGameControll : MonoBehaviour
         objeto.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
     }
     #endregion
-   
+
     #region Match Jogo
- 
+
+    public IEnumerator Match(GameObject itemA, GameObject itemB)
+    {
+        statusGrid = "Verificando Match";
+        MatchInfo matchA = coletarInformacaoMatch(itemA);
+        if (matchA.getValidMatch())
+        {
+            Debug.Log("Deu match A");
+            pontuacaoGrid += acrescimoPontuacao(matchA.matchItens.Count);
+            yield return StartCoroutine(DestruindoElementos(matchA.matchItens));
+            yield return StartCoroutine(AtualizandoGrid(matchA.matchItens));
+
+
+        }
+        MatchInfo matchB = coletarInformacaoMatch(itemB);
+        if (matchB.getValidMatch())
+        {
+            Debug.Log("Deu match B");
+            pontuacaoGrid += acrescimoPontuacao(matchB.matchItens.Count);
+            yield return StartCoroutine(DestruindoElementos(matchB.matchItens));
+            yield return StartCoroutine(AtualizandoGrid(matchB.matchItens));
+
+        }
+        //Debug.Log("Grid atualizado com sucesso");
+        for (int i = 0; i < itensInstanciadosEmCena.Length; i++)
+        {
+            MatchInfo matchGridAtualizado = coletarInformacaoMatch(itensInstanciadosEmCena[i]);
+
+            if (matchGridAtualizado.getValidMatch())
+            {
+                Debug.Log("Deu match na atualização: "+ matchGridAtualizado.matchItens.Count);
+                pontuacaoGrid += acrescimoPontuacao(matchGridAtualizado.matchItens.Count);
+                yield return StartCoroutine(DestruindoElementos(matchGridAtualizado.matchItens));
+                yield return StartCoroutine(AtualizandoGrid(matchGridAtualizado.matchItens));
+                i = 0;
+            }
+        }
+        Debug.Log("Terminei de matchs posteriores");
+        comboObjetosDestruidos = 1;
+
+
+        bool matchValido = existeMatchValidoParaOGridAtual(itensInstanciadosEmCena);
+        if (matchValido)
+        {
+            Debug.Log("Ainda existe match disponível");
+            statusGrid = "Jogando";
+        }
+        else
+        {
+            Debug.Log("Fim de Jogo");
+            statusGrid = "Fim de Jogo";
+        }
+        
+        yield break;
+    }
+
+    private bool existeMatchValidoParaOGridAtual(GameObject[] itensInstanciados)
+    {
+        GameObject[] itensInstanciadoCenaCopia = itensInstanciados;
+        for (int i = 0; i < itensInstanciadoCenaCopia.Length-1; i++)
+        {
+            if (i % constObjetosLinha < constObjetosLinha - 1)
+            {
+                Debug.Log("Vim aqui nos indices: " + i + " , " + i % constObjetosLinha);
+                int posComparacaoLado = i + 1;
+                Debug.Log("Irei realizar troca apenas com o indice: " + posComparacaoLado);
+                realizarTrocaObjetos(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoLado]);
+                bool verificaAutenticidadeDaTrocaLado= verificaMatchsGrid(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoLado]);
+                Debug.Log("Como resultado de possibilidade de match foi: " + verificaAutenticidadeDaTrocaLado);
+                realizarTrocaObjetos(itensInstanciadoCenaCopia[posComparacaoLado], itensInstanciadoCenaCopia[i]);
+                bool verificaAutenticidadeDaTrocaCima = false; ;
+                if (i<constQuantObjetosCena-constObjetosLinha)
+                {
+                    int posComparacaoCima = i + constObjetosLinha;
+                    Debug.Log("Irei realizar troca apenas com o indice: " + posComparacaoCima);
+                    realizarTrocaObjetos(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoCima]);
+                    verificaAutenticidadeDaTrocaCima = verificaMatchsGrid(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoCima]);
+                    Debug.Log("Como resultado de possibilidade de match foi: " + verificaAutenticidadeDaTrocaCima);
+                    realizarTrocaObjetos(itensInstanciadoCenaCopia[posComparacaoCima], itensInstanciadoCenaCopia[i]);
+                }
+
+
+
+                if (verificaAutenticidadeDaTrocaLado == true || verificaAutenticidadeDaTrocaCima == true)
+                {
+                    return true;
+                }
+                Debug.Log("_________________________________________________________________________________");
+            }
+            else
+            {
+                Debug.Log("Final de cada linha nos indices:" + i);
+                int posComparacaoCima = i + constObjetosLinha;
+                Debug.Log("Irei realizar troca apenas com o indice: " + posComparacaoCima);
+                realizarTrocaObjetos(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoCima]);
+                bool verificaAutenticidadeDaTrocaCima = verificaMatchsGrid(itensInstanciadoCenaCopia[i], itensInstanciadoCenaCopia[posComparacaoCima]);
+                Debug.Log("Como resultado de possibilidade de match foi: " + verificaAutenticidadeDaTrocaCima);
+                realizarTrocaObjetos(itensInstanciadoCenaCopia[posComparacaoCima], itensInstanciadoCenaCopia[i]);
+
+                if (verificaAutenticidadeDaTrocaCima == true)
+                {
+                    return true;
+                }
+                Debug.Log("_________________________________________________________________________________");
+            }
+                
+            
+        }
+        Debug.Log("Infelizmente nao encontrei nenhum match válido");
+        return false;
+    }
+
     public bool verificaMatchsGrid(GameObject item1, GameObject item2)
     {
         List<GameObject> listaHorizontalObjeto1 = procuraHorizontal(item1);
@@ -316,42 +378,7 @@ public class GridGameControll : MonoBehaviour
         return match;
     }
 
-    public IEnumerator Match(GameObject itemA, GameObject itemB)
-    {
-        
-        MatchInfo matchA = coletarInformacaoMatch(itemA);
-        if (matchA.getValidMatch())
-        {
-            Debug.Log("Deu match A");
-            yield return StartCoroutine(DestruindoElementos(matchA.matchItens));
-            yield return StartCoroutine(AtualizandoGrid(matchA.matchItens));
-
-
-        }
-        MatchInfo matchB = coletarInformacaoMatch(itemB);
-        if (matchB.getValidMatch())
-        {
-            Debug.Log("Deu match B");
-            yield return StartCoroutine(DestruindoElementos(matchB.matchItens));
-            yield return StartCoroutine(AtualizandoGrid(matchB.matchItens));
-
-        }
-
-        Debug.Log("Grid atualizado com sucesso");
-        for (int i = 0; i < itensInstanciadosEmCena.Length; i++)
-        {
-            MatchInfo matchGridAtualizado = coletarInformacaoMatch(itensInstanciadosEmCena[i]);
-
-            if (matchGridAtualizado.getValidMatch())
-            {
-                yield return StartCoroutine(DestruindoElementos(matchGridAtualizado.matchItens));
-                yield return StartCoroutine(AtualizandoGrid(matchGridAtualizado.matchItens));
-                i = 0;
-            }
-        }
-        atualizandoGrid = false;
-        yield break;
-    }
+    
 
     IEnumerator DestruindoElementos(List<GameObject> itens)
     {
@@ -487,6 +514,13 @@ public class GridGameControll : MonoBehaviour
             indices[i] = itemInfo.posLinha;
         }
         return (int)Mathf.Max(indices);
+    }
+
+    int acrescimoPontuacao(int quantPecas)
+    {
+        int pontuacaoConquistada=10 * quantPecas* comboObjetosDestruidos;
+        comboObjetosDestruidos += 1;
+        return pontuacaoConquistada;
     }
     #endregion
 

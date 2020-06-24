@@ -65,8 +65,7 @@ public class ItemDisplay : MonoBehaviour,IPointerDownHandler
     public void OnPointerDown(PointerEventData eventData)
     {
         int posicaoObjeto = posColuna + posLinha * 6;
-        Debug.Log("Cliquei no item: " + posicaoObjeto);
-        tocarSom();
+        //Debug.Log("Cliquei no item: " + posicaoObjeto);
         GameControllScript gc = GameObject.Find("Main Camera").GetComponent<GameControllScript>();
         gc.selecionandoObjeto(this.gameObject);
     }

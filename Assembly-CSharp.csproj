@@ -62,6 +62,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Script\ButtonScript.cs" />
     <Compile Include="Assets\Script\GameControllScript.cs" />
     <Compile Include="Assets\Script\GridGameControll.cs" />
     <Compile Include="Assets\Script\ItemDisplay.cs" />
