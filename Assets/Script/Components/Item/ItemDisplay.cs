@@ -40,7 +40,7 @@ public class ItemDisplay : MonoBehaviour,IPointerDownHandler
         _rendererObjeto.sprite = itemInfo.spriteObjeto;
         posLinha = linha;
         posColuna = coluna;
-        if (this.gameObject.GetComponent<RectTransform>().localScale.x > 1.0f || this.gameObject.GetComponent<RectTransform>().localScale.y > 1.0f)
+        if (this.gameObject.GetComponent<RectTransform>().localScale.x != 1.0f || this.gameObject.GetComponent<RectTransform>().localScale.y != 1.0f)
         {
             Debug.Log("Objeto: " + this.gameObject.name + "tamanho: " + this.gameObject.GetComponent<RectTransform>().localScale);
             this.gameObject.GetComponent<RectTransform>().localScale = new Vector3(1, 1, 1);
