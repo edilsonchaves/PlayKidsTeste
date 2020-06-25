@@ -61,7 +61,7 @@ public class GameControllScript : MonoBehaviour
             
             
         }
-        if(pontuacaoJogador > pontuacaoObjetivoFaseTotal)
+        if(pontuacaoJogador >= pontuacaoObjetivoFaseTotal)
         {
             textoPontuacao.color = Color.green;
         }
