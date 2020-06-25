@@ -62,12 +62,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Script\ButtonScript.cs" />
-    <Compile Include="Assets\Script\GameControllScript.cs" />
-    <Compile Include="Assets\Script\GridGameControll.cs" />
-    <Compile Include="Assets\Script\ItemDisplay.cs" />
-    <Compile Include="Assets\Script\ItemScript.cs" />
-    <Compile Include="Assets\Script\MatchInfo.cs" />
+    <Compile Include="Assets\Script\Components\Grid\GridDisplay.cs" />
+    <Compile Include="Assets\Script\Components\Item\ItemDisplay.cs" />
+    <Compile Include="Assets\Script\Components\Item\ItemScript.cs" />
+    <Compile Include="Assets\Script\Game Logic\GameControllScript.cs" />
+    <Compile Include="Assets\Script\Game Logic\GridGameControll.cs" />
+    <Compile Include="Assets\Script\Game Logic\MatchInfo.cs" />
+    <Compile Include="Assets\Script\UI\ButtonScript.cs" />
+    <Compile Include="Assets\Script\UI\FimJogoUI.cs" />
     <None Include="Assets\Audio\Music\Attribution.txt" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>C:/Users/user/Desktop/PlayKidsTest/PlayKids/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
